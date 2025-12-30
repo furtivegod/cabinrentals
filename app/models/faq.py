@@ -1,0 +1,49 @@
+"""
+FAQ entry model
+"""
+from sqlalchemy import Column, String, Text, Boolean, Integer, DateTime, CheckConstraint
+from sqlalchemy.dialects.postgresql import UUID, ARRAY
+from sqlalchemy.sql import func
+from app.db.base import Base
+import uuid
+
+
+class FAQ(Base):
+    """FAQ entry model"""
+    __tablename__ = "faqs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Core content
+    question = Column(Text, nullable=False)
+    answer = Column(Text, nullable=False)
+    slug = Column(String(500), unique=True, nullable=False, index=True)
+    
+    # Categorization
+    category = Column(String(255), index=True)
+    tags = Column(ARRAY(String))
+    
+    # Display
+    display_order = Column(Integer, default=0, index=True)
+    
+    # Publishing
+    status = Column(String(20), default='published', nullable=False, index=True)  # published, draft, archived
+    is_featured = Column(Boolean, default=False)
+    
+    __table_args__ = (
+        CheckConstraint("status IN ('published', 'draft', 'archived')", name='faqs_status_check'),
+    )
+    
+    # SEO
+    meta_title = Column(String(500))
+    meta_description = Column(Text)
+    
+    # Drupal migration
+    drupal_nid = Column(Integer, unique=True, index=True)
+    drupal_vid = Column(Integer)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    published_at = Column(DateTime(timezone=True))
+
