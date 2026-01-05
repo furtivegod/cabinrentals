@@ -10,9 +10,14 @@ from math import ceil
 from app.dependencies import get_supabase
 from app.schemas.faq import FAQResponse, FAQListResponse
 from app.core.exceptions import NotFoundError
+from app.config import settings
 
 router = APIRouter()
 
+
+@router.get("/faqs/test", response_model=List[str])
+async def get_faq_test():
+    return settings.cors_origins_list
 
 @router.get("/faqs", response_model=FAQListResponse)
 async def list_faqs(
@@ -147,7 +152,6 @@ async def get_faq_categories(
             categories.add(item['category'])
     
     return sorted(list(categories))
-
 
 @router.get("/faqs/category/{category}", response_model=List[FAQResponse])
 async def get_faqs_by_category(

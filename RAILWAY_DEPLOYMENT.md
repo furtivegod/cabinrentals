@@ -44,7 +44,7 @@ This guide will walk you through deploying your FastAPI backend to Railway step 
    ```
    SUPABASE_URL=https://cueenbvreqsnqwpajufv.supabase.co
    SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1ZWVuYnZyZXFzbnF3cGFqdWZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY1ODcxNDEsImV4cCI6MjA4MjE2MzE0MX0.wssHqwBGUFz3sbQ7A6zxli1R4lMTFgImn5iaUEdGvpg
-   SECRET_KEY=your-secure-random-secret-key-here
+   SECRET_KEY=my-secret-key-for-cabinrentals-of-georgia
    ENVIRONMENT=production
    DEBUG=False
    ```
@@ -159,6 +159,84 @@ If you need to customize:
 
 - Update `CORS_ORIGINS` to include your frontend domain
 - Ensure the format is correct (JSON array string)
+
+## How to Redeploy Your Backend
+
+There are several ways to redeploy your backend on Railway:
+
+### Method 1: Automatic Redeploy (Recommended)
+
+Railway automatically redeploys when you push changes to your connected branch:
+
+1. **Make your code changes** locally
+2. **Commit your changes**:
+   ```bash
+   cd backend
+   git add .
+   git commit -m "Your commit message"
+   git push
+   ```
+3. **Railway will automatically detect the push** and start a new deployment
+4. **Monitor the deployment** in the Railway dashboard under the **Deployments** tab
+
+### Method 2: Manual Redeploy from Dashboard
+
+If you need to redeploy without code changes (e.g., after updating environment variables):
+
+1. Go to your Railway project dashboard
+2. Click on your service
+3. Go to the **Deployments** tab
+4. Find the deployment you want to redeploy (usually the latest one)
+5. Click the **three dots (⋯)** menu on the right side of the deployment
+6. Click **"Redeploy"**
+7. Confirm the redeployment
+8. Watch the build logs as it redeploys
+
+### Method 3: Redeploy via Railway CLI
+
+If you have Railway CLI installed:
+
+1. **Install Railway CLI** (if not already installed):
+   ```bash
+   npm i -g @railway/cli
+   ```
+
+2. **Login to Railway**:
+   ```bash
+   railway login
+   ```
+
+3. **Link your project** (if not already linked):
+   ```bash
+   cd backend
+   railway link
+   ```
+
+4. **Redeploy**:
+   ```bash
+   railway up
+   ```
+
+### Method 4: Trigger Redeploy via API
+
+You can also trigger a redeploy programmatically using Railway's API, but the dashboard method is usually easier.
+
+### When to Redeploy
+
+You should redeploy when:
+- ✅ You've pushed new code changes
+- ✅ You've updated environment variables
+- ✅ You want to restart the application
+- ✅ You've fixed a bug and want to apply the fix
+- ✅ You've updated dependencies in `requirements.txt`
+
+### After Redeploying
+
+1. **Check the deployment logs** to ensure it completed successfully
+2. **Test your endpoints**:
+   - Health check: `https://your-app.up.railway.app/health`
+   - API docs: `https://your-app.up.railway.app/api/docs`
+3. **Monitor for any errors** in the logs
 
 ## Continuous Deployment
 
