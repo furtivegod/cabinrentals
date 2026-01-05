@@ -14,11 +14,6 @@ from app.config import settings
 
 router = APIRouter()
 
-
-@router.get("/faqs/test", response_model=List[str])
-async def get_faq_test():
-    return settings.cors_origins_list
-
 @router.get("/faqs", response_model=FAQListResponse)
 async def list_faqs(
     page: int = Query(1, ge=1, description="Page number"),
