@@ -40,7 +40,7 @@ async def root():
 
 
 # Import API routes
-from app.api.v1 import blogs, faqs, policies, about_us
+from app.api.v1 import blogs, faqs, policies, about_us, taxonomy
 
 # Blog and FAQ routes
 app.include_router(blogs.router, prefix="/api/v1", tags=["blogs"])
@@ -49,6 +49,9 @@ app.include_router(faqs.router, prefix="/api/v1", tags=["faqs"])
 # Policies and About Us routes
 app.include_router(policies.router, prefix="/api/v1", tags=["policies"])
 app.include_router(about_us.router, prefix="/api/v1", tags=["about-us"])
+
+# Taxonomy routes
+app.include_router(taxonomy.router, prefix="/api/v1", tags=["taxonomy"])
 
 # Other routes (commented out for now)
 # from app.api.v1 import properties, bookings, quotes, content_blocks, chat, sync
