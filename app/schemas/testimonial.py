@@ -15,6 +15,7 @@ class TestimonialBase(BaseModel):
     body_summary: Optional[str] = None
     body_format: str = "filtered_html"
     cabin_name: Optional[str] = None
+    cabin_slug: Optional[str] = None
     cabin_drupal_nid: Optional[int] = None
     customer_image_url: Optional[str] = None
     customer_image_alt: Optional[str] = None
