@@ -94,18 +94,17 @@ async def get_term_by_category_slug(
 
 
 
-@router.get("/taxonomy/term/all-cabins", response_model=TaxonomyTermResponse)
-async def get_term_for_all_cabins(
+@router.get("/taxonomy/term/by-slug", response_model=TaxonomyTermResponse)
+async def get_term_by_slug(
     slug: str,
     supabase: Client = Depends(get_supabase)
 ):
     """
-    Logic:
-    - If slug is 'blue-ridge-cabins', vid = 11
+    Get taxonomy term by slug
     """
     vid = None
     
-    if slug == 'blue-ridge-cabins':
+    if slug == 'blue-ridge-cabins' or slug == 'blue-ridge-memories':
         vid = 11
     else:
         raise HTTPException(

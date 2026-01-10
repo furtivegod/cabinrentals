@@ -10,7 +10,7 @@ import uuid
 
 class AboutUsPage(Base):
     """About Us page model"""
-    __tablename__ = "about_us_pages"
+    __tablename__ = "about_us"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
@@ -34,7 +34,7 @@ class AboutUsPage(Base):
     display_order = Column(Integer, default=0)
     
     __table_args__ = (
-        CheckConstraint("status IN ('published', 'draft', 'archived')", name='about_us_pages_status_check'),
+        CheckConstraint("status IN ('published', 'draft', 'archived')", name='about_us_status_check'),
     )
     
     # SEO

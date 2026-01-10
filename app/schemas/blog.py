@@ -28,6 +28,7 @@ class BlogResponse(BlogBase):
     published_at: Optional[datetime] = None
     meta_title: Optional[str] = None
     meta_description: Optional[str] = None
+    featured_image_url: Optional[str] = None
     
     class Config:
         from_attributes = True

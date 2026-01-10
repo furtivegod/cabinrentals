@@ -233,7 +233,7 @@ SELECT COUNT(*) FROM blog_comments;
 SELECT COUNT(*) FROM policies;
 
 -- Check about us pages count
-SELECT COUNT(*) FROM about_us_pages;
+SELECT COUNT(*) FROM about_us;
 
 -- View sample blogs
 SELECT title, slug, status, created_at FROM blogs ORDER BY created_at DESC LIMIT 10;
@@ -245,7 +245,7 @@ SELECT question, slug, status FROM faqs ORDER BY display_order LIMIT 10;
 SELECT title, slug, policy_type, status FROM policies ORDER BY display_order LIMIT 10;
 
 -- View sample about us pages
-SELECT title, slug, section, status FROM about_us_pages ORDER BY display_order LIMIT 10;
+SELECT title, slug, section, status FROM about_us ORDER BY display_order LIMIT 10;
 ```
 
 ## Troubleshooting

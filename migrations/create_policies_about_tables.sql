@@ -60,7 +60,7 @@ CREATE INDEX IF NOT EXISTS idx_policies_published_at ON policies(published_at DE
 -- ============================================
 -- ABOUT US PAGES TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS about_us_pages (
+CREATE TABLE IF NOT EXISTS about_us (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     
     -- Core content fields
@@ -98,17 +98,17 @@ CREATE TABLE IF NOT EXISTS about_us_pages (
     published_at TIMESTAMP WITH TIME ZONE,
     
     -- Constraints
-    CONSTRAINT about_us_pages_status_check CHECK (status IN ('published', 'draft', 'archived'))
+    CONSTRAINT about_us_status_check CHECK (status IN ('published', 'draft', 'archived'))
 );
 
--- Indexes for about_us_pages
-CREATE INDEX IF NOT EXISTS idx_about_us_pages_slug ON about_us_pages(slug);
-CREATE INDEX IF NOT EXISTS idx_about_us_pages_status ON about_us_pages(status);
-CREATE INDEX IF NOT EXISTS idx_about_us_pages_section ON about_us_pages(section);
-CREATE INDEX IF NOT EXISTS idx_about_us_pages_display_order ON about_us_pages(display_order);
-CREATE INDEX IF NOT EXISTS idx_about_us_pages_created_at ON about_us_pages(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_about_us_pages_drupal_nid ON about_us_pages(drupal_nid);
-CREATE INDEX IF NOT EXISTS idx_about_us_pages_published_at ON about_us_pages(published_at DESC) WHERE status = 'published';
+-- Indexes for about_us
+CREATE INDEX IF NOT EXISTS idx_about_us_slug ON about_us(slug);
+CREATE INDEX IF NOT EXISTS idx_about_us_status ON about_us(status);
+CREATE INDEX IF NOT EXISTS idx_about_us_section ON about_us(section);
+CREATE INDEX IF NOT EXISTS idx_about_us_display_order ON about_us(display_order);
+CREATE INDEX IF NOT EXISTS idx_about_us_created_at ON about_us(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_about_us_drupal_nid ON about_us(drupal_nid);
+CREATE INDEX IF NOT EXISTS idx_about_us_published_at ON about_us(published_at DESC) WHERE status = 'published';
 
 -- ============================================
 -- UPDATE TRIGGERS for updated_at
@@ -125,7 +125,7 @@ $$ language 'plpgsql';
 CREATE TRIGGER update_policies_updated_at BEFORE UPDATE ON policies
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_about_us_pages_updated_at BEFORE UPDATE ON about_us_pages
+CREATE TRIGGER update_about_us_updated_at BEFORE UPDATE ON about_us
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================
@@ -133,13 +133,13 @@ CREATE TRIGGER update_about_us_pages_updated_at BEFORE UPDATE ON about_us_pages
 -- ============================================
 -- Enable RLS if you want to use Supabase Auth
 -- ALTER TABLE policies ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE about_us_pages ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE about_us ENABLE ROW LEVEL SECURITY;
 
 -- Example policy: Allow public read access to published content
 -- CREATE POLICY "Public can view published policies" ON policies
 --     FOR SELECT USING (status = 'published');
 -- 
--- CREATE POLICY "Public can view published about_us_pages" ON about_us_pages
+-- CREATE POLICY "Public can view published about_us" ON about_us
 --     FOR SELECT USING (status = 'published');
 
 

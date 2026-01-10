@@ -1,5 +1,5 @@
 """
-Blog API endpoints
+Testimonial API endpoints
 """
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from supabase import Client
@@ -8,32 +8,34 @@ from uuid import UUID
 from math import ceil
 
 from app.dependencies import get_supabase
-from app.schemas.blog import BlogResponse, BlogListResponse
+from app.schemas.testimonial import TestimonialResponse, TestimonialListResponse
 from app.core.exceptions import NotFoundError
 
 router = APIRouter()
 
 
-@router.get("/blogs", response_model=BlogListResponse)
-async def list_blogs(
+@router.get("/testimonials", response_model=TestimonialListResponse)
+async def list_testimonials(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
     status_filter: Optional[str] = Query(None, alias="status", description="Filter by status (published, draft, archived)"),
-    featured: Optional[bool] = Query(None, description="Filter by featured/promoted status"),
+    featured: Optional[bool] = Query(None, description="Filter by featured status"),
+    cabin_name: Optional[str] = Query(None, description="Filter by cabin name"),
     search: Optional[str] = Query(None, description="Search in title and body"),
     supabase: Client = Depends(get_supabase)
 ):
     """
-    List all blog posts with pagination and filtering
+    List all testimonials with pagination and filtering
     
     - **page**: Page number (starts at 1)
     - **page_size**: Number of items per page (1-100)
     - **status**: Filter by status (published, draft, archived)
-    - **featured**: Filter by promoted/featured status
+    - **featured**: Filter by featured status
+    - **cabin_name**: Filter by cabin name
     - **search**: Search query to filter by title or body content
     """
     # Build query using Supabase client
-    query = supabase.from_('blogs').select('*', count='exact')
+    query = supabase.from_('testimonials').select('*', count='exact')
     
     # Apply filters
     if status_filter:
@@ -43,7 +45,10 @@ async def list_blogs(
         query = query.eq('status', 'published')
     
     if featured is not None:
-        query = query.eq('is_promoted', featured)
+        query = query.eq('is_featured', featured)
+    
+    if cabin_name:
+        query = query.ilike('cabin_name', f'%{cabin_name}%')
     
     if search:
         # Supabase text search - search in title field
@@ -57,19 +62,20 @@ async def list_blogs(
     
     # Apply ordering and pagination
     query = query.order('is_sticky', desc=True)
+    query = query.order('is_featured', desc=True)
     query = query.order('published_at', desc=True)
     query = query.order('created_at', desc=True)
     query = query.range((page - 1) * page_size, page * page_size - 1)
     
     # Execute query
     result = query.execute()
-    blogs = result.data if result.data else []
+    testimonials = result.data if result.data else []
     
     # Calculate total pages
     total_pages = ceil(total / page_size) if total > 0 else 0
     
-    return BlogListResponse(
-        blogs=blogs,
+    return TestimonialListResponse(
+        testimonials=testimonials,
         total=total,
         page=page,
         page_size=page_size,
@@ -77,62 +83,62 @@ async def list_blogs(
     )
 
 
-@router.get("/blogs/{blog_id}", response_model=BlogResponse)
-async def get_blog(
-    blog_id: UUID,
+@router.get("/testimonials/{testimonial_id}", response_model=TestimonialResponse)
+async def get_testimonial(
+    testimonial_id: UUID,
     supabase: Client = Depends(get_supabase)
 ):
     """
-    Get a single blog post by ID
+    Get a single testimonial by ID
     """
-    result = supabase.from_('blogs').select('*').eq('id', str(blog_id)).execute()
+    result = supabase.from_('testimonials').select('*').eq('id', str(testimonial_id)).execute()
     
     if not result.data or len(result.data) == 0:
-        raise NotFoundError(f"Blog with ID {blog_id} not found")
+        raise NotFoundError(f"Testimonial with ID {testimonial_id} not found")
     
     return result.data[0]
 
 
-@router.get("/blogs/slug/{slug}", response_model=BlogResponse)
-async def get_blog_by_slug(
+@router.get("/testimonials/slug/{slug}", response_model=TestimonialResponse)
+async def get_testimonial_by_slug(
     slug: str,
     supabase: Client = Depends(get_supabase)
 ):
     """
-    Get a blog post by slug
+    Get a testimonial by slug
     
-    Only returns published blogs. This endpoint is used for public-facing blog post pages.
+    Only returns published testimonials. This endpoint is used for public-facing testimonial pages.
     """
-    result = supabase.from_('blogs').select('*').eq('slug', slug).eq('status', 'published').execute()
+    result = supabase.from_('testimonials').select('*').eq('slug', slug).eq('status', 'published').execute()
     
     if not result.data or len(result.data) == 0:
-        raise NotFoundError(f"Blog with slug '{slug}' not found")
+        raise NotFoundError(f"Testimonial with slug '{slug}' not found")
     
     return result.data[0]
 
 
-@router.get("/blogs/featured", response_model=List[BlogResponse])
-async def get_featured_blogs(
-    limit: int = Query(5, ge=1, le=20, description="Number of featured blogs to return"),
+@router.get("/testimonials/featured", response_model=List[TestimonialResponse])
+async def get_featured_testimonials(
+    limit: int = Query(5, ge=1, le=20, description="Number of featured testimonials to return"),
     supabase: Client = Depends(get_supabase)
 ):
     """
-    Get featured/promoted blog posts
+    Get featured testimonials
     """
-    result = supabase.from_('blogs').select('*').eq('status', 'published').eq('is_promoted', True).order('published_at', desc=True).order('created_at', desc=True).limit(limit).execute()
+    result = supabase.from_('testimonials').select('*').eq('status', 'published').eq('is_featured', True).order('published_at', desc=True).order('created_at', desc=True).limit(limit).execute()
     
     return result.data if result.data else []
 
 
-@router.get("/blogs/recent", response_model=List[BlogResponse])
-async def get_recent_blogs(
-    limit: int = Query(5, ge=1, le=20, description="Number of recent blogs to return"),
+@router.get("/testimonials/recent", response_model=List[TestimonialResponse])
+async def get_recent_testimonials(
+    limit: int = Query(5, ge=1, le=20, description="Number of recent testimonials to return"),
     supabase: Client = Depends(get_supabase)
 ):
     """
-    Get most recent blog posts
+    Get most recent testimonials
     """
-    result = supabase.from_('blogs').select('*').eq('status', 'published').order('published_at', desc=True).order('created_at', desc=True).limit(limit).execute()
+    result = supabase.from_('testimonials').select('*').eq('status', 'published').order('published_at', desc=True).order('created_at', desc=True).limit(limit).execute()
     
     return result.data if result.data else []
 

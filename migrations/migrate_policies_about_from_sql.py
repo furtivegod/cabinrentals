@@ -549,7 +549,7 @@ def insert_about_pages_to_supabase(supabase: Client, about_pages: List[Dict]):
     for about in about_pages:
         try:
             # Check if about page already exists
-            existing = supabase.from_('about_us_pages').select('id').eq('drupal_nid', about['nid']).execute()
+            existing = supabase.from_('about_us').select('id').eq('drupal_nid', about['nid']).execute()
             if existing.data:
                 skipped += 1
                 continue
@@ -558,7 +558,7 @@ def insert_about_pages_to_supabase(supabase: Client, about_pages: List[Dict]):
             about_slug = slugify(about['title'])
             
             # Ensure unique slug
-            slug_check = supabase.from_('about_us_pages').select('id').eq('slug', about_slug).execute()
+            slug_check = supabase.from_('about_us').select('id').eq('slug', about_slug).execute()
             if slug_check.data:
                 about_slug = f"{about_slug}-{about['nid']}"
             
@@ -588,7 +588,7 @@ def insert_about_pages_to_supabase(supabase: Client, about_pages: List[Dict]):
                 'published_at': published_at
             }
             
-            result = supabase.from_('about_us_pages').insert(data).execute()
+            result = supabase.from_('about_us').insert(data).execute()
             if result.data:
                 inserted += 1
             
