@@ -1,7 +1,7 @@
 """
 Taxonomy API endpoints
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from supabase import Client
 from typing import Optional
 from pydantic import BaseModel
@@ -45,6 +45,7 @@ async def get_term_by_category_slug(
     elif category != 'all':
         # Assume it's a bedroom category (vid = 2)
         vid = 2
+        slug = category
     elif slug != 'all':
         # Property type (vid = 3)
         vid = 3
@@ -97,34 +98,71 @@ async def get_term_by_category_slug(
 @router.get("/taxonomy/term/by-slug", response_model=TaxonomyTermResponse)
 async def get_term_by_slug(
     slug: str,
+    vid: Optional[int] = Query(None, description="Vocabulary ID (optional, will try to detect if not provided)"),
     supabase: Client = Depends(get_supabase)
 ):
     """
     Get taxonomy term by slug
+    
+    If vid is not provided, will try to detect based on slug:
+    - 'blue-ridge-cabins' or 'blue-ridge-memories' -> vid = 11
+    - Otherwise, searches in activities vocabulary (vid = 10)
     """
-    vid = None
+    if vid is None:
+        if slug == 'blue-ridge-cabins' or slug == 'blue-ridge-memories':
+            vid = 11
+        else:
+            # Default to activities vocabulary (vid = 10) for activity slugs
+            vid = 10
     
-    if slug == 'blue-ridge-cabins' or slug == 'blue-ridge-memories':
-        vid = 11
+    # For activities (vid=10), use normalized matching like Drupal does
+    # Drupal normalizes by: lowercase, remove all non-alphanumeric chars
+    if vid == 10:
+        # Normalize slug: lowercase, remove all non-alphanumeric
+        import re
+        normalized_slug = re.sub(r'[^a-z0-9]', '', slug.lower())
+        
+        # Get all terms for this vocabulary and match by normalized name
+        all_terms = supabase.from_('taxonomy_term_data').select('*').eq('vid', vid).execute()
+        
+        if all_terms.data:
+            matched_term = None
+            for term in all_terms.data:
+                term_name = term.get('name', '')
+                # Normalize term name: lowercase, remove commas, &, hyphens, spaces
+                normalized_term = re.sub(r'[^a-z0-9]', '', term_name.lower())
+                if normalized_term == normalized_slug:
+                    matched_term = term
+                    break
+            
+            if matched_term:
+                result_data = [matched_term]
+            else:
+                result_data = []
+        else:
+            result_data = []
+        
+        # Convert to result format
+        class MockResult:
+            def __init__(self, data):
+                self.data = data
+        
+        result = MockResult(result_data)
     else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid slug combination"
-        )
-    
-    # Convert slug to name - try both hyphenated and space-separated versions
-    slug_name = slug.replace('-', ' ')
-    
-    # First try exact match (case-insensitive)
-    result = supabase.from_('taxonomy_term_data').select('*').eq('vid', vid).ilike('name', slug_name).limit(1).execute()
-    
-    if not result.data or len(result.data) == 0:
-        # Try with hyphenated version
-        result = supabase.from_('taxonomy_term_data').select('*').eq('vid', vid).ilike('name', slug).limit(1).execute()
-    
-    if not result.data or len(result.data) == 0:
-        # Try partial match
-        result = supabase.from_('taxonomy_term_data').select('*').eq('vid', vid).ilike('name', f'%{slug_name}%').limit(1).execute()
+        # For other vocabularies, use standard matching
+        # Convert slug to name - try both hyphenated and space-separated versions
+        slug_name = slug.replace('-', ' ')
+        
+        # First try exact match (case-insensitive)
+        result = supabase.from_('taxonomy_term_data').select('*').eq('vid', vid).ilike('name', slug_name).limit(1).execute()
+        
+        if not result.data or len(result.data) == 0:
+            # Try with hyphenated version
+            result = supabase.from_('taxonomy_term_data').select('*').eq('vid', vid).ilike('name', slug).limit(1).execute()
+        
+        if not result.data or len(result.data) == 0:
+            # Try partial match
+            result = supabase.from_('taxonomy_term_data').select('*').eq('vid', vid).ilike('name', f'%{slug_name}%').limit(1).execute()
     
     if not result.data or len(result.data) == 0:
         raise NotFoundError(f"Taxonomy term with slug '{slug}' not found")
