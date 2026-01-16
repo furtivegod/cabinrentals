@@ -76,11 +76,16 @@ async def get_term_by_category_slug(
     tid = term['tid']
     
     # Get page title from field_data_field_term_page_title
-    page_title_result = supabase.from_('field_data_field_term_page_title').select('field_term_page_title_value').eq('entity_id', tid).eq('entity_type', 'taxonomy_term').eq('deleted', 0).limit(1).execute()
-    
     page_title = None
-    if page_title_result.data and len(page_title_result.data) > 0:
-        page_title = page_title_result.data[0].get('field_term_page_title_value')
+    try:
+        page_title_result = supabase.from_('field_data_field_term_page_title').select('field_term_page_title_value').eq('entity_id', tid).eq('entity_type', 'taxonomy_term').eq('deleted', 0).limit(1).execute()
+        
+        if page_title_result.data and len(page_title_result.data) > 0:
+            page_title = page_title_result.data[0].get('field_term_page_title_value')
+    except Exception as e:
+        # If page title query fails, continue without it
+        # Log the error for debugging but don't fail the entire request
+        print(f"Warning: Failed to fetch page title for term {tid}: {e}")
     
     return TaxonomyTermResponse(
         tid=tid,
@@ -109,7 +114,7 @@ async def get_term_by_slug(
     - Otherwise, searches in activities vocabulary (vid = 10)
     """
     if vid is None:
-        if slug == 'blue-ridge-cabins' or slug == 'blue-ridge-memories':
+        if slug == 'blue-ridge-cabins' or slug == 'blue-ridge-memories' or slug == 'blue-ridge-experience':
             vid = 11
         else:
             # Default to activities vocabulary (vid = 10) for activity slugs
@@ -150,32 +155,52 @@ async def get_term_by_slug(
         result = MockResult(result_data)
     else:
         # For other vocabularies, use standard matching
-        # Convert slug to name - try both hyphenated and space-separated versions
-        slug_name = slug.replace('-', ' ')
-        
-        # First try exact match (case-insensitive)
-        result = supabase.from_('taxonomy_term_data').select('*').eq('vid', vid).ilike('name', slug_name).limit(1).execute()
-        
-        if not result.data or len(result.data) == 0:
-            # Try with hyphenated version
-            result = supabase.from_('taxonomy_term_data').select('*').eq('vid', vid).ilike('name', slug).limit(1).execute()
-        
-        if not result.data or len(result.data) == 0:
-            # Try partial match
-            result = supabase.from_('taxonomy_term_data').select('*').eq('vid', vid).ilike('name', f'%{slug_name}%').limit(1).execute()
+        try:
+            # Convert slug to name - try both hyphenated and space-separated versions
+            slug_name = slug.replace('-', ' ')
+            
+            # First try exact match (case-insensitive)
+            result = supabase.from_('taxonomy_term_data').select('*').eq('vid', vid).ilike('name', slug_name).limit(1).execute()
+            
+            if not result.data or len(result.data) == 0:
+                # Try with hyphenated version
+                result = supabase.from_('taxonomy_term_data').select('*').eq('vid', vid).ilike('name', slug).limit(1).execute()
+            
+            if not result.data or len(result.data) == 0:
+                # Try partial match
+                result = supabase.from_('taxonomy_term_data').select('*').eq('vid', vid).ilike('name', f'%{slug_name}%').limit(1).execute()
+        except Exception as e:
+            # If database query fails, raise a more informative error
+            print(f"Error querying taxonomy_term_data for slug '{slug}', vid {vid}: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Database error while searching for taxonomy term: {str(e)}"
+            )
     
     if not result.data or len(result.data) == 0:
         raise NotFoundError(f"Taxonomy term with slug '{slug}' not found")
     
-    term = result.data[0]
-    tid = term['tid']
+    try:
+        term = result.data[0]
+        tid = term['tid']
+    except (KeyError, IndexError, TypeError) as e:
+        print(f"Error accessing term data: {e}, result.data: {result.data if hasattr(result, 'data') else 'No data attribute'}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Invalid data format returned from database for slug '{slug}'"
+        )
     
     # Get page title from field_data_field_term_page_title
-    page_title_result = supabase.from_('field_data_field_term_page_title').select('field_term_page_title_value').eq('entity_id', tid).eq('entity_type', 'taxonomy_term').eq('deleted', 0).limit(1).execute()
-    
     page_title = None
-    if page_title_result.data and len(page_title_result.data) > 0:
-        page_title = page_title_result.data[0].get('field_term_page_title_value')
+    try:
+        page_title_result = supabase.from_('field_data_field_term_page_title').select('field_term_page_title_value').eq('entity_id', tid).eq('entity_type', 'taxonomy_term').eq('deleted', 0).limit(1).execute()
+        
+        if page_title_result.data and len(page_title_result.data) > 0:
+            page_title = page_title_result.data[0].get('field_term_page_title_value')
+    except Exception as e:
+        # If page title query fails, continue without it
+        # Log the error for debugging but don't fail the entire request
+        print(f"Warning: Failed to fetch page title for term {tid}: {e}")
     
     return TaxonomyTermResponse(
         tid=tid,

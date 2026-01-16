@@ -11,6 +11,15 @@ from app.core.exceptions import NotFoundError
 
 router = APIRouter()
 
+@router.get("/activities/getAllActivities")
+async def getAllActivities(
+    supabase: Client = Depends(get_supabase)
+):
+    """
+    Get all activities
+    """
+    result = supabase.from_('activities').select('*').execute()
+    return result.data
 
 @router.get("/activities")
 async def list_activities(

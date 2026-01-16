@@ -12,8 +12,21 @@ from app.core.exceptions import NotFoundError
 
 router = APIRouter()
 
-# IMPORTANT: Specific routes must come before parameterized routes
-# to avoid route matching conflicts
+
+    
+@router.get("/cabins/getAllCabins", response_model=PropertyListResponse)
+async def getAllCabins(
+    supabase: Client = Depends(get_supabase)
+):
+    """
+    Get all cabins
+    
+    Only returns published cabins.
+    """
+    print("getAllCabins")
+    result = supabase.from_('cabins').select('*').eq('status', 'published').execute()
+    print(result.data, "result.data")
+    return PropertyListResponse(properties=result.data)
 
 @router.get("/cabins/get-cabins-by-term-id", response_model=PropertyListResponse)
 async def get_cabins_by_term_id(
@@ -156,3 +169,6 @@ async def get_cabin(
         raise NotFoundError(f"Cabin with ID '{cabin_id}' not found")
     
     return result.data[0]
+
+
+
