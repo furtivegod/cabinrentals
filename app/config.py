@@ -73,9 +73,11 @@ class Settings(BaseSettings):
 
     # ------------------------------------------------------------------
     # Streamline PMS
+    # Example URL: https://yourcompany.streamlinevrs.com
     # ------------------------------------------------------------------
     STREAMLINE_API_URL: str = ""
-    STREAMLINE_API_KEY: str = ""
+    STREAMLINE_TOKEN_KEY: str = ""
+    STREAMLINE_TOKEN_SECRET: str = ""
 
     # ------------------------------------------------------------------
     # Cloudflare R2

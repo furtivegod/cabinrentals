@@ -20,6 +20,7 @@ class CabinResponse(BaseModel):
     bathrooms: Optional[str] = None  # Bathroom count (from taxonomy term)
     bathrooms_tid: Optional[int] = None  # Taxonomy term ID
     sleeps: Optional[int] = None
+    minimum_rate: Optional[float] = None  # Minimum daily/nightly rate (DECIMAL in database)
     property_type: Optional[List[Any]] = None  # JSONB array: [{"tid": 20, "name": "Blue Ridge Luxury"}, ...]
     amenities: Optional[List[Any]] = None  # JSONB array: [{"tid": 131, "name": "Pet Friendly"}, ...]
     features: Optional[List[str]] = None
