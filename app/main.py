@@ -40,7 +40,7 @@ async def root():
 
 
 # Import API routes
-from app.api.v1 import blogs, faqs, policies, about_us, taxonomy, testimonials, cabins, activities, pages, streamline
+from app.api.v1 import blogs, faqs, policies, about_us, taxonomy, testimonials, cabins, activities, pages, streamline, calendar
 
 # Blog and FAQ routes
 app.include_router(blogs.router, prefix="/api/v1", tags=["blogs"])
@@ -67,6 +67,9 @@ app.include_router(pages.router, prefix="/api/v1", tags=["pages"])
 
 # Streamline PMS routes
 app.include_router(streamline.router, prefix="/api/v1", tags=["streamline"])
+
+# Calendar routes
+app.include_router(calendar.router, prefix="/api/v1", tags=["calendar"])
 
 # Other routes (commented out for now)
 # from app.api.v1 import properties, bookings, quotes, content_blocks, chat, sync

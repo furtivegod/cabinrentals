@@ -25,7 +25,6 @@ async def getAllCabins(
     """
     print("getAllCabins")
     result = supabase.from_('cabins').select('*').eq('status', 'published').execute()
-    print(result.data, "result.data")
     return PropertyListResponse(properties=result.data)
 
 @router.get("/cabins/get-cabins-by-term-id", response_model=PropertyListResponse)
@@ -39,9 +38,9 @@ async def get_cabins_by_term_id(
     
     Searches for cabins where the specified term ID (tid) exists in:
     - property_type: JSONB array of objects like [{"tid": 20, "name": "Blue Ridge Luxury"}, ...]
-    - bedrooms: Single value, checked via bedrooms_tid field
-    - bathrooms: Single value, checked via bathrooms_tid field
     - amenities: JSONB array of objects like [{"tid": 131, "name": "Pet Friendly"}, ...]
+    
+    Note: bedrooms and bathrooms are now stored as string values only (no tid fields).
     
     If 'field' is specified, only searches in that field. Otherwise searches in all fields.
     
@@ -63,44 +62,37 @@ async def get_cabins_by_term_id(
         fields_to_search = []
         if field:
             # Search in specific field
-            if field in ['property_type', 'bedrooms', 'bathrooms', 'amenities']:
+            if field in ['property_type', 'amenities']:
                 fields_to_search = [field]
             else:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Invalid field '{field}'. Must be one of: property_type, bedrooms, bathrooms, amenities"
+                    detail=f"Invalid field '{field}'. Must be one of: property_type, amenities"
                 )
         else:
             # Search in all fields
-            fields_to_search = ['property_type', 'bedrooms', 'bathrooms', 'amenities']
+            fields_to_search = ['property_type', 'amenities']
         
         # Filter cabins where any of the specified fields contains the matching tid
         for cabin in result.data:
             found = False
             for field_name in fields_to_search:
-                if field_name in ['bedrooms', 'bathrooms']:
-                    # For bedrooms and bathrooms, check the _tid field (single value)
-                    tid_field = f"{field_name}_tid"
-                    if cabin.get(tid_field) == tid:
-                        found = True
-                        break
-                else:
-                    # For property_type and amenities, check JSONB arrays
-                    field_data = cabin.get(field_name)
-                    if field_data:
-                        # Handle both list and JSON string formats
-                        if isinstance(field_data, str):
-                            try:
-                                field_data = json.loads(field_data)
-                            except (json.JSONDecodeError, TypeError):
-                                continue
-                        
-                        # Check if field_data is a list and contains an object with matching tid
-                        if isinstance(field_data, list):
-                            for item in field_data:
-                                if isinstance(item, dict) and item.get('tid') == tid:
-                                    found = True
-                                    break
+                # For property_type and amenities, check JSONB arrays
+                field_data = cabin.get(field_name)
+                if field_data:
+                    # Handle both list and JSON string formats
+                    if isinstance(field_data, str):
+                        try:
+                            field_data = json.loads(field_data)
+                        except (json.JSONDecodeError, TypeError):
+                            continue
+                    
+                    # Check if field_data is a list and contains an object with matching tid
+                    if isinstance(field_data, list):
+                        for item in field_data:
+                            if isinstance(item, dict) and item.get('tid') == tid:
+                                found = True
+                                break
                 
                 if found:
                     break
@@ -114,22 +106,22 @@ async def get_cabins_by_term_id(
     return PropertyListResponse(properties=filtered_cabins)
 
 
-@router.get("/cabins/slug/{slug}", response_model=CabinResponse)
-async def get_cabin_by_slug(
-    slug: str,
-    supabase: Client = Depends(get_supabase)
-):
-    """
-    Get a cabin by slug
+# @router.get("/cabins/slug/{slug}", response_model=CabinResponse)
+# async def get_cabin_by_slug(
+#     slug: str,
+#     supabase: Client = Depends(get_supabase)
+# ):
+#     """
+#     Get a cabin by slug
     
-    Only returns published cabins. This endpoint is used for public-facing cabin pages.
-    """
-    result = supabase.from_('cabins').select('*').eq('slug', slug).eq('status', 'published').execute()
+#     Only returns published cabins. This endpoint is used for public-facing cabin pages.
+#     """
+#     result = supabase.from_('cabins').select('*').eq('slug', slug).eq('status', 'published').execute()
     
-    if not result.data or len(result.data) == 0:
-        raise NotFoundError(f"Cabin with slug '{slug}' not found")
+#     if not result.data or len(result.data) == 0:
+#         raise NotFoundError(f"Cabin with slug '{slug}' not found")
     
-    return result.data[0]
+#     return result.data[0]
 
 
 @router.get("/cabins/cabin-slug/{cabin_slug:path}", response_model=CabinResponse)
