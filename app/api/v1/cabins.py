@@ -2,6 +2,7 @@
 Cabin API endpoints
 """
 import json
+from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from supabase import Client
 from typing import Optional
@@ -13,7 +14,6 @@ from app.core.exceptions import NotFoundError
 router = APIRouter()
 
 
-    
 @router.get("/cabins/getAllCabins", response_model=PropertyListResponse)
 async def getAllCabins(
     supabase: Client = Depends(get_supabase)
@@ -23,8 +23,38 @@ async def getAllCabins(
     
     Only returns published cabins.
     """
-    print("getAllCabins")
-    result = supabase.from_('cabins').select('*').eq('status', 'published').execute()
+    try:
+        result = supabase.from_('cabins').select('*').eq('status', 'published').execute()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database connection error. Please try again later."
+        )
+    
+    if not result.data:
+        return PropertyListResponse(properties=[])
+    
+    # Get all streamline_ids from cabins
+    streamline_ids = [c['streamline_id'] for c in result.data if c.get('streamline_id')]
+    
+    # Fetch today's rates for all cabins in one query
+    today = date.today()
+    rates_by_streamline = {}
+    if streamline_ids:
+        try:
+            rates_result = supabase.from_('daily_rates').select('streamline_id, daily_rate').eq('date', str(today)).in_('streamline_id', streamline_ids).execute()
+            if rates_result.data:
+                rates_by_streamline = {r['streamline_id']: float(r['daily_rate']) for r in rates_result.data}
+        except Exception:
+            # If rates fetch fails, continue without rates (non-critical)
+            pass
+    
+    # Add today_rate to each cabin
+    for cabin in result.data:
+        streamline_id = cabin.get('streamline_id')
+        if streamline_id and streamline_id in rates_by_streamline:
+            cabin['today_rate'] = rates_by_streamline[streamline_id]
+    
     return PropertyListResponse(properties=result.data)
 
 @router.get("/cabins/get-cabins-by-term-id", response_model=PropertyListResponse)
@@ -142,7 +172,16 @@ async def get_cabin_by_cabin_slug(
     if not result.data or len(result.data) == 0:
         raise NotFoundError(f"Cabin with cabin_slug '{cabin_slug}' not found")
     
-    return result.data[0]
+    cabin = result.data[0]
+    
+    # Fetch today's rate if cabin has a streamline_id
+    if cabin.get('streamline_id'):
+        today = date.today()
+        rate_result = supabase.from_('daily_rates').select('daily_rate').eq('streamline_id', cabin['streamline_id']).eq('date', str(today)).execute()
+        if rate_result.data and len(rate_result.data) > 0:
+            cabin['today_rate'] = float(rate_result.data[0]['daily_rate'])
+    
+    return cabin
 
 
 @router.get("/cabins/{cabin_id}", response_model=CabinResponse)

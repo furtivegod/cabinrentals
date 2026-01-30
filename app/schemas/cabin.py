@@ -40,6 +40,7 @@ class CabinResponse(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
     published_at: Optional[datetime] = None
+    today_rate: Optional[float] = None  # Today's daily rate
 
     class Config:
         from_attributes = True
