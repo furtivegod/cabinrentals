@@ -75,7 +75,29 @@ async def get_cabin_calendar(
         states_result = supabase.from_('availability_calendar_state').select('*').order('weight').execute()
         states = {s['sid']: CalendarState(**s) for s in states_result.data}
         
-        # Build months data
+        # Calculate overall date range for all months
+        first_month_date = start
+        last_month_date = start
+        for month_offset in range(months - 1):
+            if last_month_date.month == 12:
+                last_month_date = date(last_month_date.year + 1, 1, 1)
+            else:
+                last_month_date = date(last_month_date.year, last_month_date.month + 1, 1)
+        
+        # Get last day of last month
+        last_day_num = monthrange(last_month_date.year, last_month_date.month)[1]
+        overall_end_date = date(last_month_date.year, last_month_date.month, last_day_num)
+        
+        # Fetch all availability data in one query (optimized)
+        availability_result = supabase.from_('availability_calendar_availability').select('*').eq('cid', calendar_id).gte('date', str(first_month_date)).lte('date', str(overall_end_date)).execute()
+        
+        # Fetch all rates data in one query if requested (optimized)
+        rates_result_data = []
+        if include_rates and streamline_id:
+            rates_result = supabase.from_('daily_rates').select('*').eq('streamline_id', streamline_id).gte('date', str(first_month_date)).lte('date', str(overall_end_date)).execute()
+            rates_result_data = rates_result.data
+        
+        # Build months data from fetched data
         months_data = []
         current_date = start
         
@@ -88,36 +110,36 @@ async def get_cabin_calendar(
             last_day_num = monthrange(year, month)[1]
             last_day = date(year, month, last_day_num)
             
-            # Get availability for this month
-            availability_result = supabase.from_('availability_calendar_availability').select('*').eq('cid', calendar_id).gte('date', str(first_day)).lte('date', str(last_day)).execute()
-            
+            # Filter availability for this month from pre-fetched data
             availability_dict = {}
             for avail in availability_result.data:
-                date_str = avail['date']
-                sid = avail['sid']
-                availability_dict[date_str] = CalendarAvailability(
-                    cid=avail['cid'],
-                    date=datetime.strptime(date_str, '%Y-%m-%d').date(),
-                    sid=sid,
-                    state=states.get(sid)
-                )
+                avail_date = datetime.strptime(avail['date'], '%Y-%m-%d').date()
+                if first_day <= avail_date <= last_day:
+                    date_str = avail['date']
+                    sid = avail['sid']
+                    availability_dict[date_str] = CalendarAvailability(
+                        cid=avail['cid'],
+                        date=avail_date,
+                        sid=sid,
+                        state=states.get(sid)
+                    )
             
-            # Get rates for this month if requested and streamline_id exists
+            # Filter rates for this month from pre-fetched data
             rates_dict = {}
             if include_rates and streamline_id:
-                rates_result = supabase.from_('daily_rates').select('*').eq('streamline_id', streamline_id).gte('date', str(first_day)).lte('date', str(last_day)).execute()
-                
-                for rate in rates_result.data:
-                    date_str = rate['date']
-                    rates_dict[date_str] = DailyRate(
-                        id=rate['id'],
-                        cabin_id=rate.get('cabin_id'),
-                        streamline_id=rate['streamline_id'],
-                        date=datetime.strptime(date_str, '%Y-%m-%d').date(),
-                        daily_rate=float(rate['daily_rate']),
-                        created_at=datetime.fromisoformat(rate['created_at'].replace('Z', '+00:00')),
-                        updated_at=datetime.fromisoformat(rate['updated_at'].replace('Z', '+00:00')) if rate.get('updated_at') else None
-                    )
+                for rate in rates_result_data:
+                    rate_date = datetime.strptime(rate['date'], '%Y-%m-%d').date()
+                    if first_day <= rate_date <= last_day:
+                        date_str = rate['date']
+                        rates_dict[date_str] = DailyRate(
+                            id=rate['id'],
+                            cabin_id=rate.get('cabin_id'),
+                            streamline_id=rate['streamline_id'],
+                            date=rate_date,
+                            daily_rate=float(rate['daily_rate']),
+                            created_at=datetime.fromisoformat(rate['created_at'].replace('Z', '+00:00')),
+                            updated_at=datetime.fromisoformat(rate['updated_at'].replace('Z', '+00:00')) if rate.get('updated_at') else None
+                        )
             
             months_data.append(CalendarMonthResponse(
                 year=year,
